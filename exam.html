@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* General settings */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .todo-container {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        /* Input Area */
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        #todo-input {
+            width: 75%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #add-btn {
+            width: 20%;
+            padding: 10px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #add-btn:hover {
+            background-color: #45a049;
+        }
+
+        /* Filter Area */
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        #filter-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Todo List */
+        .todo-list {
+            margin-bottom: 20px;
+        }
+
+        .todo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .todo-item p {
+            flex: 1;
+            margin: 0;
+        }
+
+        .todo-item button {
+            background-color: #f44336;
+            border: none;
+            padding: 5px 10px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Spacing between Delete and Edit buttons */
+        .todo-item button.edit-btn {
+            margin-left: 10px;
+        }
+
+        .todo-item button:hover {
+            background-color: #d32f2f;
+        }
+
+        /* Footer */
+        footer {
+            display: flex;
+            justify-content: center;
+        }
+
+        #clear-btn {
+            padding: 10px 20px;
+            background-color: #ff9800;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #clear-btn:hover {
+            background-color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container">
+        <header>
+            <h1>To-Do List</h1>
+        </header>
+
+        <div class="input-container">
+            <input type="text" id="todo-input" placeholder="Type something to do..." />
+            <button id="add-btn">Add</button>
+        </div>
+
+        <!-- Filter input area -->
+        <div class="filter-container">
+            <input type="text" id="filter-input" placeholder="Filter..." />
+        </div>
+
+        <div id="todo-list" class="todo-list">
+            <!-- To-Do items will be added here -->
+        </div>
+
+        <footer>
+            <button id="clear-btn">Clear All</button>
+        </footer>
+    </div>
+
+    <script>
+        // Select DOM elements
+        const todoInput = document.getElementById('todo-input');
+        const addBtn = document.getElementById('add-btn');
+        const todoList = document.getElementById('todo-list');
+        const clearBtn = document.getElementById('clear-btn');
+        const filterInput = document.getElementById('filter-input');
+
+        // To-Do List Data
+        let todos = [];
+        let filteredTodos = []; // This will hold the filtered list based on user input
+
+        // Load data from localStorage
+        function loadTodos() {
+            const savedTodos = localStorage.getItem('todos');
+            if (savedTodos) {
+                todos = JSON.parse(savedTodos);
+            }
+            filteredTodos = todos; // Initialize filteredTodos with all todos
+            renderTodos();
+        }
+
+        // Function to add a To-Do item
+        function addTodo() {
+            const todoText = todoInput.value.trim();
+
+            if (todoText !== "") {
+                const newTodo = {
+                    id: Date.now(),
+                    text: todoText,
+                    completed: false
+                };
+
+                todos.push(newTodo);
+                saveTodos();
+                filteredTodos = todos; // Reset filteredTodos to all todos
+                renderTodos();
+                todoInput.value = ""; // Clear input
+            }
+        }
+
+        // Function to render the To-Do items on the screen
+        function renderTodos() {
+            todoList.innerHTML = ""; // Clear the list first
+
+            filteredTodos.forEach(todo => {
+                const todoItem = document.createElement('div');
+                todoItem.classList.add('todo-item');
+                todoItem.dataset.id = todo.id;
+
+                todoItem.innerHTML = `
+                    <p>${todo.text}</p>
+                    <button class="delete-btn">Delete</button>
+                    <button class="edit-btn">Edit</button>
+                `;
+
+                // Handle delete button
+                const deleteBtn = todoItem.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', () => deleteTodo(todo.id));
+
+                // Handle edit button
+                const editBtn = todoItem.querySelector('.edit-btn');
+                editBtn.addEventListener('click', () => editTodo(todo.id));
+
+                todoList.appendChild(todoItem);
+            });
+        }
+
+        // Function to delete a To-Do item
+        function deleteTodo(id) {
+            todos = todos.filter(todo => todo.id !== id);
+            filteredTodos = filteredTodos.filter(todo => todo.id !== id); // Update filteredTodos as well
+            saveTodos();
+            renderTodos();
+        }
+
+        // Function to edit a To-Do item
+        function editTodo(id) {
+            const todo = todos.find(todo => todo.id === id);
+            const newText = prompt("Enter new text:", todo.text);
+
+            if (newText !== null && newText.trim() !== "") {
+                todo.text = newText.trim();
+                saveTodos();
+                filteredTodos = todos; // Reset filteredTodos to all todos after edit
+                renderTodos();
+            }
+        }
+
+        // Function to clear all To-Do items
+        function clearTodos() {
+            todos = [];
+            filteredTodos = []; // Clear filteredTodos as well
+            saveTodos();
+            renderTodos();
+        }
+
+        // Save data to localStorage
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        // Activate buttons
+        addBtn.addEventListener('click', addTodo);
+        clearBtn.addEventListener('click', clearTodos);
+
+        // Add To-Do item with Enter key
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodo();
+            }
+        });
+
+        // Filter input event
+        filterInput.addEventListener('input', () => {
+            const filterText = filterInput.value.trim().toLowerCase();
+
+            if (filterText !== "") {
+                document.getElementById("clear-btn").style.display = "none"
+                filteredTodos = todos.filter(todo => todo.text.toLowerCase().includes(filterText));
+            } else {
+                document.getElementById("clear-btn").style.display = "block"
+                filteredTodos = todos; // Reset to all todos if filter is cleared
+            }
+            renderTodos();
+        });
+
+        // Render todos when the page is first loaded
+        loadTodos();
+    </script>
+</body>
+</html>
